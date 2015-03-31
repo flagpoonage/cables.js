@@ -1,170 +1,170 @@
 ;(function(){
-	"use strict";
-	
-	var _none = function(value) { return typeof value === 'undefined' || typeof value === 'null' };
-	var _string = function(value) { return typeof value === 'string' };
-	var _async = function(callback, context, args) { setTimeout(function() { callback.call(context, args) }, 0); };
+  "use strict";
+  
+  var _none = function(value) { return typeof value === 'undefined' || typeof value === 'null' };
+  var _string = function(value) { return typeof value === 'string' };
+  var _async = function(callback, context, args) { setTimeout(function() { callback.call(context, args) }, 0); };
 
-	var CableTopic = (function(){
-		function CableTopic(name){
-			this.name = name;
-			this.events = Object.create(null);
-			this.subscriptions = [];
-		};
+  var CableTopic = (function(){
+    function CableTopic(name){
+      this.name = name;
+      this.events = Object.create(null);
+      this.subscriptions = [];
+    };
 
-		CableTopic.prototype.ev = function(name){
-			return this.events[name];
-		};
+    CableTopic.prototype.ev = function(name){
+      return this.events[name];
+    };
 
-		CableTopic.prototype.evOrCreate = function(name){
-			var doCreate = _none(this.events[name]);
-			if(doCreate){ this.events[name] = new CableEvent(name);	}
-			return this.events[name];
-		};
+    CableTopic.prototype.evOrCreate = function(name){
+      var doCreate = _none(this.events[name]);
+      if(doCreate){ this.events[name] = new CableEvent(name); }
+      return this.events[name];
+    };
 
-		CableTopic.prototype.sub = function(callback, context){
-			var s = Object.create(null);
-			s.callback = callback;
-			s.context = context;
-			this.subscriptions.push(s);
-		};
+    CableTopic.prototype.sub = function(callback, context){
+      var s = Object.create(null);
+      s.callback = callback;
+      s.context = context;
+      this.subscriptions.push(s);
+    };
 
-		CableTopic.prototype.pub = function(arg){
-			for(var i = 0; i < this.subscriptions.length; i++){
-				this.subscriptions[i].callback.call(this.subscriptions[i].context, arg);
-			}
-		};
+    CableTopic.prototype.pub = function(arg){
+      for(var i = 0; i < this.subscriptions.length; i++){
+        this.subscriptions[i].callback.call(this.subscriptions[i].context, arg);
+      }
+    };
 
-		CableTopic.prototype.on = function(options){
-			this.evOrCreate(options.ev).on(options);
-		};
+    CableTopic.prototype.on = function(options){
+      this.evOrCreate(options.ev).on(options);
+    };
 
-		CableTopic.prototype.off = function(options){
-			if(_none(options.ev) || _none(options.id)){ return; }
-			var ev = this.ev(options.ev);
-			
-			if(_none(ev)){ return; }
-			ev.off(options.id);
-		};
+    CableTopic.prototype.off = function(options){
+      if(_none(options.ev) || _none(options.id)){ return; }
+      var ev = this.ev(options.ev);
+      
+      if(_none(ev)){ return; }
+      ev.off(options.id);
+    };
 
-		CableTopic.prototype.out = function(ev, arg){
-			ev = this.ev(ev);
-			if(_none(ev)){ return; }
-			ev.out(arg);
-			this.pub(arg);
-		};
+    CableTopic.prototype.out = function(ev, arg){
+      ev = this.ev(ev);
+      if(_none(ev)){ return; }
+      ev.out(arg);
+      this.pub(arg);
+    };
 
-		return CableTopic;
-	})();
+    return CableTopic;
+  })();
 
-	var CableEvent = (function(){
-		var incrementId = function(value){
-			return 'CBLEV_' + (value + 1).toString();
-		};
+  var CableEvent = (function(){
+    var incrementId = function(value){
+      return 'CBLEV_' + (value + 1).toString();
+    };
 
-		function CableEvent(name){
-			this.name = name;
-			this.handlers = {};
-			this.counter = 0;
-		};
+    function CableEvent(name){
+      this.name = name;
+      this.handlers = {};
+      this.counter = 0;
+    };
 
-		CableEvent.prototype.on = function(options){
-			if(_none(options.callback)) { return; }
-			var id = options.id;
+    CableEvent.prototype.on = function(options){
+      if(_none(options.callback)) { return; }
+      var id = options.id;
 
-			if(!_string(id)){
-				var id = incrementId(this.counter);
-				this.counter++;
-			}
-			
-			this.handlers[id] = Object.create(null);
-			this.handlers[id].callback = options.callback;
-			this.handlers[id].context = options.context;
-		};
+      if(!_string(id)){
+        var id = incrementId(this.counter);
+        this.counter++;
+      }
+      
+      this.handlers[id] = Object.create(null);
+      this.handlers[id].callback = options.callback;
+      this.handlers[id].context = options.context;
+    };
 
-		CableEvent.prototype.off = function(id){
-			delete this.handlers[id];
-		};
+    CableEvent.prototype.off = function(id){
+      delete this.handlers[id];
+    };
 
-		CableEvent.prototype.out = function(arg){
-			for(var i in this.handlers){
-				this.handlers[i].callback.call(this.handlers[i].context, arg);	
-			}
-		};
+    CableEvent.prototype.out = function(arg){
+      for(var i in this.handlers){
+        this.handlers[i].callback.call(this.handlers[i].context, arg);  
+      }
+    };
 
-		return CableEvent;
-	})();
+    return CableEvent;
+  })();
 
-	var Cable = (function(){
-		var _spl = function(ev, sep){
-			var sp = ev.split(sep);
-			var res = Object.create(null);
-			if(sp.length === 1){
-				res.event = sp[0];
-			}
-			else{
-				res.topic = sp[0];
-				res.event = sp[1];
-			}
-			return res;
-		}
+  var Cable = (function(){
+    var _spl = function(ev, sep){
+      var sp = ev.split(sep);
+      var res = Object.create(null);
+      if(sp.length === 1){
+        res.event = sp[0];
+      }
+      else{
+        res.topic = sp[0];
+        res.event = sp[1];
+      }
+      return res;
+    }
 
-		function Cable(topicSeperator){
-			this.seperator = _string(topicSeperator) ? topicSeperator : '.';
-			this.topics = Object.create(null);
-			this.topics._other = new CableTopic();
-		};
+    function Cable(topicSeperator){
+      this.seperator = _string(topicSeperator) ? topicSeperator : '.';
+      this.topics = Object.create(null);
+      this.topics._other = new CableTopic();
+    };
 
-		Cable.prototype.topic = function(name){
-			var doCreate = _none(this.topics[name]);
-			if(doCreate){ this.topics[name] = new CableTopic(name);	}
-			return this.topics[name];						
-		};
+    Cable.prototype.topic = function(name){
+      var doCreate = _none(this.topics[name]);
+      if(doCreate){ this.topics[name] = new CableTopic(name); }
+      return this.topics[name];           
+    };
 
-		Cable.prototype.on = function(options) {
-			if(!_string(options.ev)){ return ;}
-			var sp = _spl(options.ev, this.seperator);
-			options.ev = sp.event;
+    Cable.prototype.on = function(options) {
+      if(!_string(options.ev)){ return ;}
+      var sp = _spl(options.ev, this.seperator);
+      options.ev = sp.event;
 
-			return _string(sp.topic) 
-			? this.topic(sp.topic).on(options)
-			: this.topics._other.on(options);
-		};
+      return _string(sp.topic) 
+      ? this.topic(sp.topic).on(options)
+      : this.topics._other.on(options);
+    };
 
-		Cable.prototype.off = function(options){
-			if(_none(options.ev) || _none(options.id)){ return; }
-			var sp = _spl(options.ev, this.seperator)
-			options.ev = sp.event;
-			return _string(sp.topic) 
-			? this.topics[sp.topic].off(options) 
-			: this.topics._other.off(options);
-		};
+    Cable.prototype.off = function(options){
+      if(_none(options.ev) || _none(options.id)){ return; }
+      var sp = _spl(options.ev, this.seperator)
+      options.ev = sp.event;
+      return _string(sp.topic) 
+      ? this.topics[sp.topic].off(options) 
+      : this.topics._other.off(options);
+    };
 
-		Cable.prototype.out = function(ev, arg) {
-			if(!_string(ev)){ return; }
-			var sp = _spl(ev, this.seperator)
-			ev = sp.event;
-			return _string(sp.topic) 
-			? this.topics[sp.topic].out(ev, arg) 
-			: this.topics._other.out(ev, arg);
-		};
+    Cable.prototype.out = function(ev, arg) {
+      if(!_string(ev)){ return; }
+      var sp = _spl(ev, this.seperator)
+      ev = sp.event;
+      return _string(sp.topic) 
+      ? this.topics[sp.topic].out(ev, arg) 
+      : this.topics._other.out(ev, arg);
+    };
 
-		return Cable;
-	})();
+    return Cable;
+  })();
 
-	var CBLJS = Object.create(null);
-	CBLJS.Cable = Cable;
-	CBLJS.CableTopic = CableTopic;
-	CBLJS.CableEvent = CableEvent;
+  var CBLJS = Object.create(null);
+  CBLJS.Cable = Cable;
+  CBLJS.CableTopic = CableTopic;
+  CBLJS.CableEvent = CableEvent;
 
-	if (typeof exports !== 'undefined') {
-		if (typeof module !== 'undefined' && module.exports) {
-			exports = module.exports = CBLJS;
-		}
-		exports.CBLJS = CBLJS;
-	} 
-	else {
-		this.CBLJS = CBLJS;
-	}
+  if (typeof exports !== 'undefined') {
+    if (typeof module !== 'undefined' && module.exports) {
+      exports = module.exports = CBLJS;
+    }
+    exports.CBLJS = CBLJS;
+  } 
+  else {
+    this.CBLJS = CBLJS;
+  }
 
 })(this);
