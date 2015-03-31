@@ -70,7 +70,13 @@
 
 		CableEvent.prototype.on = function(options){
 			if(_none(options.callback)) { return; }
-			var id = !_string(options.id) ? incrementId(this.counter) : options.id;
+			var id = options.id;
+
+			if(!_string(id)){
+				var id = incrementId(this.counter);
+				this.counter++;
+			}
+			
 			this.handlers[id] = Object.create(null);
 			this.handlers[id].callback = options.callback;
 			this.handlers[id].context = options.context;
