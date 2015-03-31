@@ -1,6 +1,6 @@
 ;(function(){
     "use strict";
-    
+
     var _none = function(value) { return typeof value === 'undefined' || typeof value === 'null' };
     var _string = function(value) { return typeof value === 'string' };
     var _async = function(callback, context, args) { setTimeout(function() { callback.call(context, args) }, 0); };
@@ -22,19 +22,6 @@
             return this.events[name];
         };
 
-        CableTopic.prototype.sub = function(callback, context){
-            var s = Object.create(null);
-            s.callback = callback;
-            s.context = context;
-            this.subscriptions.push(s);
-        };
-
-        CableTopic.prototype.pub = function(arg){
-            for(var i = 0; i < this.subscriptions.length; i++){
-                this.subscriptions[i].callback.call(this.subscriptions[i].context, arg);
-            }
-        };
-
         CableTopic.prototype.on = function(options){
             this.evOrCreate(options.ev).on(options);
         };
@@ -42,7 +29,7 @@
         CableTopic.prototype.off = function(options){
             if(_none(options.ev) || _none(options.id)){ return; }
             var ev = this.ev(options.ev);
-            
+
             if(_none(ev)){ return; }
             ev.off(options.id);
         };
@@ -51,7 +38,6 @@
             ev = this.ev(ev);
             if(_none(ev)){ return; }
             ev.out(arg);
-            this.pub(arg);
         };
 
         return CableTopic;
@@ -76,7 +62,7 @@
                 var id = incrementId(this.counter);
                 this.counter++;
             }
-            
+
             this.handlers[id] = Object.create(null);
             this.handlers[id].callback = options.callback;
             this.handlers[id].context = options.context;
