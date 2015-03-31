@@ -31,7 +31,7 @@
 
 		CableTopic.prototype.pub = function(arg){
 			for(var i = 0; i < this.subscriptions.length; i++){
-				_async(this.subscriptions[i].callback, this.subscriptions[i].context, arg);
+				this.subscriptions[i].callback.call(this.subscriptions[i].context, arg);
 			}
 		};
 
@@ -66,7 +66,6 @@
 			this.name = name;
 			this.handlers = {};
 			this.counter = 0;
-			this.nextId = incrementId(this.counter);
 		};
 
 		CableEvent.prototype.on = function(options){
@@ -83,7 +82,7 @@
 
 		CableEvent.prototype.out = function(arg){
 			for(var i in this.handlers){
-				_async(this.handlers[i].callback, this.handlers[i].context, arg);			
+				this.handlers[i].callback.call(this.handlers[i].context, arg);	
 			}
 		};
 
@@ -122,8 +121,8 @@
 			options.ev = sp.event;
 
 			return _string(sp.topic) 
-				? this.topic(sp.topic).on(options)
-				: this.topics._other.on(options);
+			? this.topic(sp.topic).on(options)
+			: this.topics._other.on(options);
 		};
 
 		Cable.prototype.off = function(options){
@@ -131,8 +130,8 @@
 			var sp = _spl(options.ev, this.seperator)
 			options.ev = sp.event;
 			return _string(sp.topic) 
-				? this.topics[sp.topic].off(options) 
-				: this.topics._other.off(options);
+			? this.topics[sp.topic].off(options) 
+			: this.topics._other.off(options);
 		};
 
 		Cable.prototype.out = function(ev, arg) {
@@ -140,12 +139,26 @@
 			var sp = _spl(ev, this.seperator)
 			ev = sp.event;
 			return _string(sp.topic) 
-				? this.topics[sp.topic].out(ev, arg) 
-				: this.topics._other.out(ev, arg);
+			? this.topics[sp.topic].out(ev, arg) 
+			: this.topics._other.out(ev, arg);
 		};
 
 		return Cable;
 	})();
 
-	window.Cable = new Cable();
-})();
+	var CBLJS = Object.create(null);
+	CBLJS.Cable = Cable;
+	CBLJS.CableTopic = CableTopic;
+	CBLJS.CableEvent = CableEvent;
+
+	if (typeof exports !== 'undefined') {
+		if (typeof module !== 'undefined' && module.exports) {
+			exports = module.exports = CBLJS;
+		}
+		exports.CBLJS = CBLJS;
+	} 
+	else {
+		this.CBLJS = CBLJS;
+	}
+
+})(this);
