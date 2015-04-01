@@ -115,23 +115,22 @@
             return this.topics[name];           
         };
 
-        Cable.prototype.on = function(options) {
-            if(!_string(options.ev)){ return ;}
-            var sp = _spl(options.ev, this.seperator);
-            options.ev = sp.event;
+        Cable.prototype.on = function(eventString, callback, context, handlerId) {
+            if(!_string(eventString)){ return ;}
+            var sp = _spl(eventString, this.seperator);
+            eventString = sp.event;
 
             return _string(sp.topic) 
-            ? this.topic(sp.topic).on(options)
-            : this.topics._other.on(options);
+            ? this.topic(sp.topic).on(sp.event, callback, context, handlerId)
+            : this.topics._other.on(sp.event, callback, context, handlerId);
         };
 
-        Cable.prototype.off = function(options){
-            if(_none(options.ev) || _none(options.id)){ return; }
-            var sp = _spl(options.ev, this.seperator);
-            options.ev = sp.event;
+        Cable.prototype.off = function(eventString, handlerId){
+            if(_none(eventString) || _none(handlerId)){ return; }
+            var sp = _spl(eventString, this.seperator);
             return _string(sp.topic) 
-            ? this.topics[sp.topic].off(options) 
-            : this.topics._other.off(options);
+            ? this.topics[sp.topic].off(sp.event, handlerId) 
+            : this.topics._other.off(sp.event, handlerId);
         };
 
         Cable.prototype.out = function(ev, arg) {

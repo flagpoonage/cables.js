@@ -7,7 +7,7 @@ describe('CableEvent', function(){
     var idgen_2 = name + '_CBLEV_2';
 
     describe('creation', function(){
-        it('shouldn not fail', function(){
+        it('should not fail', function(){
             assert.doesNotThrow(function() { var s = new CBLJS.CableEvent(); }, "Error in CableEvent constructor");
         });   
 
@@ -38,7 +38,7 @@ describe('CableEvent', function(){
             assert.throws(captureThrow);
         });
 
-        it('should generate an ID if one is not supplied', function(){
+        it('can generate an ID if one is not supplied', function(){
             var result = ce.on(h1.callback, h1.context);
             assert.notStrictEqual(typeof ce.handlers[idgen_1], 'undefined', 'Expected generated id: ' + idgen_1 + ', actual was ' + result);
         });
@@ -156,7 +156,7 @@ describe('CableTopic', function(){
     });
 
     describe('createEv', function(){
-        it('should create a new CableEvent if none exists', function(){
+        it('can create a new CableEvent if none exists', function(){
             var eventName = 'test';
             var ct = new CBLJS.CableTopic(topicName);
 
@@ -229,7 +229,7 @@ describe('CableTopic', function(){
             }
         };
 
-        it('should create a new event if one does not exist', function(){            
+        it('can create a new event if one does not exist', function(){            
             var ct = new CBLJS.CableTopic(topicName);
             var id = ct.on(eventName, ob1.update, ob1);
             var ev = ct.ev(eventName);
@@ -261,17 +261,14 @@ describe('CableTopic', function(){
         it('should remove a handler from an event', function(){
             var ct = new CBLJS.CableTopic(topicName);
             var id = ct.on(eventName, ob1.update, ob1, handlerId);
-
             var expect = testVal + ob1.value;
-
             ct.out(eventName, testVal);
 
-            assert.strictEqual(expect, ob1.value, 'The expected value was not returned despite the event being still attached');
+            assert.strictEqual(expect, ob1.value, 'The expected value was not returned despite the event being still attached. ');
 
             ob1.value = 10;
             expect = ob1.value;
             ct.off(eventName, handlerId);
-
             ct.out(eventName, testVal);
 
             assert.strictEqual(expect, ob1.value, 'The handler was not removed from the event. Expected: ' + expect + ', actual: ' + ob1.value);
@@ -281,32 +278,130 @@ describe('CableTopic', function(){
 
 describe('Cable', function(){
     describe('creation', function(){
-        it('shouldn not fail', function(){
+        it('should not fail', function(){
             assert.doesNotThrow(function() { var s = new CBLJS.Cable(); }, "Error in Cable constructor");
         });
 
         it('should create a default seperator of "."', function(){
             var c = new CBLJS.Cable();
+
             assert.strictEqual(c.seperator, '.', 'The default seperator is not a full stop');
         });
 
         it('should allow supplying a custom seperator in the constructor', function(){
             var c = new CBLJS.Cable(':');
+
             assert.strictEqual(c.seperator, ':', 'A colon was supplied but ' + c.seperator + ' is the seperator');
         })
     });
 
     describe('topic', function(){
         var c = new CBLJS.Cable();
-        it('shouldn not fail', function(){
+        it('should not fail', function(){
             assert.doesNotThrow(function() { c.topic('test1'); }, "Error in topic function");
         });
 
         it('should create and return a topic', function(){
             var t = c.topic('test3');
+
             assert.notStrictEqual(typeof t, 'undefined', "No topic was returned");
             assert.notStrictEqual(typeof c.topics['test3'], 'undefined', "No topic was created on the cable");
             assert.strictEqual(t, c.topics['test3'], "The returned topic does not match the created topic");
+        });
+    });
+
+    describe('on', function(){
+        var topicName = 'topic';
+        var eventName = 'event';
+        var handlerID = 'handler1';
+        var cSep = ':'
+        var defEventString = topicName + '.' + eventName;
+        var cusEventString = topicName + cSep + eventName;
+
+        var ob1 = {
+            value: 10,
+            update: function(v){
+                this.value += v;
+            }
+        }
+
+        it('can create a new topic, event and handler using the default seperator', function(){
+            var c = new CBLJS.Cable();
+
+            assert.strictEqual(typeof c.topics[topicName], 'undefined', 'The new cable already contains a topic named "' + topicName);
+
+            var id = c.on(defEventString, ob1.update, ob1, handlerID);
+            var res = c.topics[topicName];
+
+            assert.notStrictEqual(typeof res, 'undefined', 'The topic expected: ' + topicName + ' was not created');
+
+            var tRes = c.topic(topicName);
+
+            assert.strictEqual(tRes, res, 'The topic attached to this cable and the topic returned by the "on" function are different');
+
+            var ev = c.topic(topicName).ev(eventName);
+
+            assert.notStrictEqual(typeof ev, 'undefined', 'The expected event: ' + eventName + ' was not created on the topic: ' + topicName);
+
+            var hRes = ev.handlers[id];
+
+            assert.notStrictEqual(typeof hRes, 'undefined', 'The handler ID returned: ' + id + ' does not match any handler on the event: ' + eventName);
+        });
+
+        it('can create a new topic, event and handler using a custom seperator', function(){
+            var c = new CBLJS.Cable(cSep);
+
+            assert.strictEqual(typeof c.topics[topicName], 'undefined', 'The new cable already contains a topic named "' + topicName);
+
+            var id = c.on(cusEventString, ob1.update, ob1, handlerID);
+            var res = c.topics[topicName];
+
+            assert.notStrictEqual(typeof res, 'undefined', 'The topic expected: ' + topicName + ' was not created');
+
+            var tRes = c.topic(topicName);
+
+            assert.strictEqual(tRes, res, 'The topic attached to this cable and the topic returned by the "on" function are different');
+
+            var ev = c.topic(topicName).ev(eventName);
+
+            assert.notStrictEqual(typeof ev, 'undefined', 'The expected event: ' + eventName + ' was not created on the topic: ' + topicName);
+
+            var hRes = ev.handlers[id];
+
+            assert.notStrictEqual(typeof hRes, 'undefined', 'The handler ID returned: ' + id + ' does not match any handler on the event: ' + eventName);
+        });
+
+
+        it('can create a new event without a topic', function(){
+            var c = new CBLJS.Cable();            
+            var id = c.on(eventName, ob1.update, ob1, handlerID);
+
+            assert.notStrictEqual(typeof  c.topics._other, 'undefined', 'The catch all topic does not exist');
+
+            var ev = c.topics._other.events[eventName];
+
+            assert.notStrictEqual(typeof ev, 'undefined', 'The event: ' + eventName + ' does not exist on the catch all topic.');
+        });
+
+        it('can create a new event on an existing topic', function(){
+            var c= new CBLJS.Cable();
+            var t = c.topic(topicName);
+            c.on(defEventString, ob1.update, ob1, handlerID);
+            var res = t.ev(eventName);
+
+            assert.notStrictEqual(typeof res, 'undefined', 'The event was not attached to the existing topic'); 
+        });
+
+        it('can attach a new handler to an existing topic and event', function(){
+            var c = new CBLJS.Cable();
+            var cEv = c.topic(topicName).createEv(eventName);
+            var id = c.on(defEventString, ob1.update, ob1, handlerID);
+            var res = cEv.handlers[id];
+
+            assert.notStrictEqual(typeof res, 'undefined', 'The handler was not attached to the existing event');
+
+            assert.strictEqual(res.context, ob1, 'The context objects do not match');
+            assert.strictEqual(res.callback, ob1.update, 'The callback functions do not match');
         });
     });
 });
