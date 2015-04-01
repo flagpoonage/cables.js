@@ -4,7 +4,9 @@
   "description": "Handy litte pubsub library",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "lint": "jshint src",
+    "test": "mocha",
+    "build": "npm run lint && npm test"
   },
   "repository": {
     "type": "git",
@@ -20,6 +22,7 @@
     "url": "https://github.com/flagpoonage/cables.js/issues"
   },
   "devDependencies": {
-    "should": "~5.2.0"
+    "should": "~5.2.0",
+    "jshint": "latest"
   }
 }

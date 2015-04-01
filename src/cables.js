@@ -1,81 +1,89 @@
+/*jshint -W089 */
+/*jshint node: true */
 ;(function(){
     "use strict";
 
-    var _none = function(value) { return typeof value === 'undefined' || typeof value === 'null' };
-    var _string = function(value) { return typeof value === 'string' };
-    var _async = function(callback, context, args) { setTimeout(function() { callback.call(context, args) }, 0); };
+    var _none = function(value) { return typeof value === 'undefined' || value === null; };
+    var _string = function(value) { return typeof value === 'string'; };
+    var _function = function(value) { return typeof value === 'function'; };
 
     var CableTopic = (function(){
         function CableTopic(name){
             this.name = name;
             this.events = Object.create(null);
-            this.subscriptions = [];
+        }
+
+        CableTopic.prototype.createEv = function(name){
+            var doCreate = _none(this.events[name]);
+            if(doCreate){ this.events[name] = new CableEvent(name); }
+            return this.events[name];
         };
 
         CableTopic.prototype.ev = function(name){
             return this.events[name];
         };
 
-        CableTopic.prototype.evOrCreate = function(name){
-            var doCreate = _none(this.events[name]);
-            if(doCreate){ this.events[name] = new CableEvent(name); }
-            return this.events[name];
+        CableTopic.prototype.on = function(evName, callback, context, id){
+            var ev = this.createEv(evName)
+            return ev.on(callback, context, id);
         };
 
-        CableTopic.prototype.on = function(options){
-            this.evOrCreate(options.ev).on(options);
-        };
-
-        CableTopic.prototype.off = function(options){
-            if(_none(options.ev) || _none(options.id)){ return; }
-            var ev = this.ev(options.ev);
+        CableTopic.prototype.off = function(evName, id){
+            if(_none(evName) || _none(id)){ return; }
+            var ev = this.ev(evName);
 
             if(_none(ev)){ return; }
-            ev.off(options.id);
+            ev.off(id);
         };
 
         CableTopic.prototype.out = function(ev, arg){
             ev = this.ev(ev);
             if(_none(ev)){ return; }
-            ev.out(arg);
+            return ev.out(arg);
         };
 
         return CableTopic;
     })();
 
     var CableEvent = (function(){
-        var incrementId = function(value){
-            return 'CBLEV_' + (value + 1).toString();
+        var incrementId = function(name, value){
+            return name + '_CBLEV_' + (value + 1).toString();
         };
 
         function CableEvent(name){
             this.name = name;
             this.handlers = {};
             this.counter = 0;
-        };
+        }
 
-        CableEvent.prototype.on = function(options){
-            if(_none(options.callback)) { return; }
-            var id = options.id;
+        CableEvent.prototype.on = function(callback, context, id){
+            if(!_function(callback)){
+                throw 'CableEvent.on expects a callback function as it\'s first argument';
+            }
 
             if(!_string(id)){
-                var id = incrementId(this.counter);
+                id = incrementId(this.name, this.counter);
                 this.counter++;
             }
 
             this.handlers[id] = Object.create(null);
-            this.handlers[id].callback = options.callback;
-            this.handlers[id].context = options.context;
+            this.handlers[id].callback = callback;
+            this.handlers[id].context = context;
+
+            return id;
         };
 
         CableEvent.prototype.off = function(id){
             delete this.handlers[id];
+            return this;
         };
 
         CableEvent.prototype.out = function(arg){
             for(var i in this.handlers){
                 this.handlers[i].callback.call(this.handlers[i].context, arg);  
             }
+
+            return this;
         };
 
         return CableEvent;
@@ -93,13 +101,13 @@
                 res.event = sp[1];
             }
             return res;
-        }
+        };
 
         function Cable(topicSeperator){
             this.seperator = _string(topicSeperator) ? topicSeperator : '.';
             this.topics = Object.create(null);
             this.topics._other = new CableTopic();
-        };
+        }
 
         Cable.prototype.topic = function(name){
             var doCreate = _none(this.topics[name]);
@@ -119,7 +127,7 @@
 
         Cable.prototype.off = function(options){
             if(_none(options.ev) || _none(options.id)){ return; }
-            var sp = _spl(options.ev, this.seperator)
+            var sp = _spl(options.ev, this.seperator);
             options.ev = sp.event;
             return _string(sp.topic) 
             ? this.topics[sp.topic].off(options) 
@@ -128,7 +136,7 @@
 
         Cable.prototype.out = function(ev, arg) {
             if(!_string(ev)){ return; }
-            var sp = _spl(ev, this.seperator)
+            var sp = _spl(ev, this.seperator);
             ev = sp.event;
             return _string(sp.topic) 
             ? this.topics[sp.topic].out(ev, arg) 
